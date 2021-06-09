@@ -37,14 +37,17 @@ impl EventHandler for Handler {
         let maybe_roles = self.config.roles.get(&guild_id.0);
 
         if let Some(roles) = maybe_roles {
-            let result = member.add_roles(context.http, &roles[0..]).await;
+            for role in roles {
+                let result = member.add_role(&context.http, role.0).await;
 
-            if let Err(error) = result {
-                println!(
-                    "Failed to add default roles in server {}: {:?}", 
-                    guild_id.0, 
-                    error
-                );
+                if let Err(error) = result {
+                    println!(
+                        "Failed to add default role {} in server {}: {:?}", 
+                        role.0,
+                        guild_id.0, 
+                        error
+                    );
+                }
             }
         }
     }
