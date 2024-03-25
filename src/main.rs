@@ -2,9 +2,8 @@ use std::fs;
 use std::collections::HashMap;
 
 use serenity::{async_trait, prelude::*};
-use serenity::model::id::{GuildId, RoleId};
+use serenity::model::id::RoleId;
 use serenity::model::guild::Member;
-use serenity::client::bridge::gateway::GatewayIntents;
 
 use serde::Deserialize;
 
@@ -30,21 +29,20 @@ impl Handler {
 impl EventHandler for Handler {
     async fn guild_member_addition(
         &self, 
-        context: Context, 
-        guild_id: GuildId, 
-        mut member: Member,
+        context: Context,
+        member: Member,
     ) {
-        let maybe_roles = self.config.roles.get(&guild_id.0);
+        let maybe_roles = self.config.roles.get(&member.guild_id.get());
 
         if let Some(roles) = maybe_roles {
             for role in roles {
-                let result = member.add_role(&context.http, role.0).await;
+                let result = member.add_role(&context.http, role.get()).await;
 
                 if let Err(error) = result {
                     println!(
                         "Failed to add default role {} in server {}: {:?}", 
-                        role.0,
-                        guild_id.0, 
+                        role.get(),
+                        member.guild_id.get(),
                         error
                     );
                 }
@@ -61,11 +59,10 @@ async fn main() {
         .expect("Unable to parse config file");
 
     let token = config.token.clone();
-        
+    let intents = GatewayIntents::GUILDS | GatewayIntents::GUILD_MEMBERS;
     let handler = Handler::new(config);
 
-    let mut client = Client::builder(&token)
-        .intents(GatewayIntents::GUILDS | GatewayIntents::GUILD_MEMBERS)
+    let mut client = Client::builder(&token, intents)
         .event_handler(handler).await
         .unwrap();
     
